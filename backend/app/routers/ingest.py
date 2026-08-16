@@ -3,6 +3,7 @@ from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import io
+import time
 
 from app.database import get_db
 
@@ -20,15 +21,44 @@ TABLE_MAP = {
 
 
 async def _ingest_csv(table: str, file: UploadFile, db: Session):
-    contents = await file.read()
-    df = pd.read_csv(io.BytesIO(contents))
+    t0 = time.time()
     expected = TABLE_MAP[table]
-    missing = set(expected) - set(df.columns)
-    if missing:
-        return {"error": f"Missing expected columns for {table}: {missing}"}
-    df = df[expected]
-    df.to_sql(table, db.bind, if_exists="append", index=False)
-    return {"table": table, "rows_ingested": len(df)}
+    is_postgres = db.bind.dialect.name == "postgresql"
+    raw_conn = db.bind.raw_connection()
+    total_rows = 0
+    try:
+        cursor = raw_conn.cursor()
+        columns = ",".join(expected)
+
+        if not is_postgres:
+            placeholders = ",".join(["?"] * len(expected))
+            insert_sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+
+        for chunk in pd.read_csv(file.file, chunksize=50_000):
+            missing = set(expected) - set(chunk.columns)
+            if missing:
+                raw_conn.rollback()
+                return {"error": f"Missing expected columns for {table}: {missing}"}
+            chunk = chunk[expected]
+
+            if is_postgres:
+                buf = io.StringIO()
+                chunk.to_csv(buf, index=False, header=False)
+                buf.seek(0)
+                cursor.copy_expert(
+                    f"COPY {table} ({columns}) FROM STDIN WITH (FORMAT csv)", buf
+                )
+            else:
+                rows = [tuple(x) for x in chunk.to_numpy()]
+                cursor.executemany(insert_sql, rows)
+
+            total_rows += len(chunk)
+
+        raw_conn.commit()
+    finally:
+        raw_conn.close()
+
+    return {"table": table, "rows_ingested": total_rows, "seconds": round(time.time() - t0, 1)}
 
 
 @router.post("/stores")
