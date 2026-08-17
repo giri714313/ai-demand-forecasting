@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2, Settings as SettingsIcon, RefreshCw, Play, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Settings as SettingsIcon, RefreshCw, Play, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import api from "../api";
 
 function NumberField({ label, hint, value, onChange, min = 0, max = 365 }) {
@@ -28,14 +28,17 @@ export default function SettingsPage() {
 
   const [trainState, setTrainState] = useState({ status: "idle", result: null, error: null });
   const [forecastState, setForecastState] = useState({ status: "idle", result: null, error: null });
-
   async function handleRetrain() {
     setTrainState({ status: "loading", result: null, error: null });
     try {
       const result = await api.train({ test_days: testDays });
       setTrainState({ status: "done", result, error: null });
     } catch (e) {
-      setTrainState({ status: "error", result: null, error: e.message });
+      const isNetworkFail = e.message.includes("Load failed") || e.message.includes("Failed to fetch") || e.message.includes("NetworkError");
+      const msg = isNetworkFail
+        ? "The live backend likely ran out of memory (this dataset needs ~1.2GB, the free hosting tier has 512MB) and crashed mid-request. Run this from your local machine against the same database instead — see the note below."
+        : e.message;
+      setTrainState({ status: "error", result: null, error: msg });
     }
   }
 
@@ -48,7 +51,11 @@ export default function SettingsPage() {
       });
       setForecastState({ status: "done", result, error: null });
     } catch (e) {
-      setForecastState({ status: "error", result: null, error: e.message });
+      const isNetworkFail = e.message.includes("Load failed") || e.message.includes("Failed to fetch") || e.message.includes("NetworkError");
+      const msg = isNetworkFail
+        ? "The live backend likely ran out of memory (this dataset needs ~1.2GB, the free hosting tier has 512MB) and crashed mid-request. Run this from your local machine against the same database instead — see the note below."
+        : e.message;
+      setForecastState({ status: "error", result: null, error: msg });
     }
   }
 
@@ -58,6 +65,17 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-[22px] font-medium text-gray-900">Settings</h1>
           <p className="text-[13px] text-gray-500 mt-0.5">Risk thresholds and pipeline controls, these call the live API</p>
+        </div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+        <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+        <div className="text-[13px] text-amber-800">
+          <span className="font-medium">Known limitation:</span> the buttons below call the live backend
+          directly, which runs on a free hosting tier with 512MB of memory. Retraining or regenerating
+          forecasts on the full dataset needs roughly 1.2GB and will likely fail. Until this is upgraded,
+          run these steps from your local machine (pointed at the same database) instead — the results
+          still show up here once done, since everyone reads from the same data.
         </div>
       </div>
 
