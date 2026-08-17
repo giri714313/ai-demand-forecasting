@@ -14,6 +14,26 @@ class Store(Base):
     state = Column(String)
     store_type = Column(String)
     active = Column(Boolean, default=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+
+class StoreDistance(Base):
+    """
+    Cached road-distance lookups between store pairs (via Google Maps
+    Distance Matrix API). Computed once per store-pair and reused by the
+    transfer-matching logic, since store locations rarely change and
+    Distance Matrix calls cost money per request.
+    """
+    __tablename__ = "store_distances"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    store_a_id = Column(String, ForeignKey("stores.store_id"), index=True)
+    store_b_id = Column(String, ForeignKey("stores.store_id"), index=True)
+    distance_km = Column(Float)
+    duration_minutes = Column(Float, nullable=True)
+    computed_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (Index("ix_store_distance_pair", "store_a_id", "store_b_id", unique=True),)
 
 
 class Product(Base):

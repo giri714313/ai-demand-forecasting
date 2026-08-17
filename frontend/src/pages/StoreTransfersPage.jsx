@@ -48,6 +48,7 @@ export default function StoreTransfersPage() {
                   <th className="font-normal pb-2 pr-4">SKU</th>
                   <th className="font-normal pb-2 pr-4">From store</th>
                   <th className="font-normal pb-2 pr-4">To store</th>
+                  <th className="font-normal pb-2 pr-4">Distance</th>
                   <th className="font-normal pb-2 text-right">Quantity</th>
                 </tr>
               </thead>
@@ -57,6 +58,9 @@ export default function StoreTransfersPage() {
                     <td className="py-2 pr-4 text-gray-800">{r.product_name}</td>
                     <td className="py-2 pr-4 text-gray-500">{r.from_store_name}</td>
                     <td className="py-2 pr-4 text-gray-500">{r.store_name}</td>
+                    <td className="py-2 pr-4 text-gray-500">
+                      {r.distance_km != null ? `${r.distance_km.toFixed(1)} km` : "—"}
+                    </td>
                     <td className="py-2 text-right font-medium text-green-600 flex items-center justify-end gap-1.5">
                       <ArrowLeftRight size={12} /> {r.quantity.toFixed(0)} units
                     </td>

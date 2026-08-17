@@ -57,6 +57,7 @@ class RecommendationOut(BaseModel):
     from_store_id: Optional[str] = None
     from_store_name: Optional[str] = None
     quantity: float
+    distance_km: Optional[float] = None
 
     class Config:
         from_attributes = True

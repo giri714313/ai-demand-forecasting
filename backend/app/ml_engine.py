@@ -277,7 +277,21 @@ def generate_forecasts_and_recommendations(db: Session, horizon: int = 90,
     ]
     db.bulk_save_objects(replenishment_recs)
 
-    # transfers: match HIGH-risk shortages to overstocked surplus of the same SKU
+    # transfers: match HIGH-risk shortages to overstocked surplus of the same
+    # SKU, restricted to stores within a realistic delivery radius (10-50km,
+    # road distance) -- a transfer suggestion between stores hundreds of km
+    # apart isn't actually actionable, so distance is a hard filter here,
+    # not just a tiebreaker.
+    MIN_TRANSFER_DISTANCE_KM = 10
+    MAX_TRANSFER_DISTANCE_KM = 50
+
+    distance_rows = db.query(models.StoreDistance).all()
+    nearby_stores = {}  # store_id -> {other_store_id: distance_km}
+    for d in distance_rows:
+        if MIN_TRANSFER_DISTANCE_KM <= d.distance_km <= MAX_TRANSFER_DISTANCE_KM:
+            nearby_stores.setdefault(d.store_a_id, {})[d.store_b_id] = d.distance_km
+            nearby_stores.setdefault(d.store_b_id, {})[d.store_a_id] = d.distance_km
+
     transfer_recs = []
     for sku_id, group in summary.groupby('sku_id'):
         shortages = group[group.stockout_risk_level == 'HIGH'].sort_values('days_of_stock_remaining')
@@ -285,7 +299,17 @@ def generate_forecasts_and_recommendations(db: Session, horizon: int = 90,
         if shortages.empty or surplus.empty:
             continue
         for _, short_row in shortages.iterrows():
-            for idx, sur_row in surplus.iterrows():
+            # Only consider surplus stores within the delivery radius of the
+            # shortage store, closest first -- not just whichever has the
+            # most excess units.
+            candidates = nearby_stores.get(short_row.store_id, {})
+            eligible_surplus = surplus[surplus.store_id.isin(candidates.keys())].copy()
+            if eligible_surplus.empty:
+                continue
+            eligible_surplus['distance_km'] = eligible_surplus.store_id.map(candidates)
+            eligible_surplus = eligible_surplus.sort_values('distance_km')
+
+            for idx, sur_row in eligible_surplus.iterrows():
                 if sur_row.store_id == short_row.store_id or sur_row.excess_units <= 0:
                     continue
                 qty = min(sur_row.excess_units, short_row.replenishment_qty)

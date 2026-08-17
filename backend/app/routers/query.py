@@ -38,15 +38,27 @@ def _enrich_risk(rows, stores, products) -> List[schemas.RiskOut]:
     return out
 
 
-def _enrich_recs(rows, stores, products) -> List[schemas.RecommendationOut]:
+def _distance_lookup(db: Session):
+    distances = {}
+    for d in db.query(models.StoreDistance).all():
+        distances[(d.store_a_id, d.store_b_id)] = d.distance_km
+        distances[(d.store_b_id, d.store_a_id)] = d.distance_km
+    return distances
+
+
+def _enrich_recs(rows, stores, products, distances=None) -> List[schemas.RecommendationOut]:
     out = []
     for r in rows:
+        distance_km = None
+        if distances is not None and r.from_store_id:
+            distance_km = distances.get((r.store_id, r.from_store_id))
         out.append(schemas.RecommendationOut(
             rec_type=r.rec_type, store_id=r.store_id, sku_id=r.sku_id,
             store_name=stores.get(r.store_id), product_name=products.get(r.sku_id),
             from_store_id=r.from_store_id,
             from_store_name=stores.get(r.from_store_id) if r.from_store_id else None,
             quantity=r.quantity,
+            distance_km=distance_km,
         ))
     return out
 
@@ -104,7 +116,8 @@ def get_transfers(store_id: Optional[str] = None, limit: int = 100, db: Session 
         q = q.filter(models.Recommendation.store_id == store_id)
     rows = q.order_by(models.Recommendation.quantity.desc()).limit(limit).all()
     stores, products = _name_lookups(db)
-    return _enrich_recs(rows, stores, products)
+    distances = _distance_lookup(db)
+    return _enrich_recs(rows, stores, products, distances)
 
 
 @router.get("/metrics/backtest", response_model=List[schemas.BacktestOut])
