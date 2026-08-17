@@ -124,6 +124,9 @@ def data_stats(db: Session = Depends(get_db)):
         "recommendation_rows": db.query(models.Recommendation).count(),
         "backtest_rows": db.query(models.BacktestResult).count(),
     }
+
+
+@router.get("/dashboard/summary", response_model=schemas.DashboardSummary)
 def dashboard_summary(db: Session = Depends(get_db)):
     n_stores = db.query(models.Store).count()
     n_skus = db.query(models.Product).count()
