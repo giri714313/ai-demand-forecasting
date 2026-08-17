@@ -1,0 +1,26 @@
+<svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" font-family="'Space Grotesk', 'Inter', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="aw-grad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7BA7E8"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- icon, scaled/positioned -->
+  <g transform="translate(0,0) scale(1.1)">
+    <path d="M22 12 L22 84 L88 84" stroke="#0F172A" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <line x1="22" y1="46" x2="82" y2="46" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>
+    <rect x="30" y="30" width="8" height="14" rx="1.5" fill="#7BA7E8"/>
+    <rect x="42" y="24" width="8" height="20" rx="1.5" fill="#5B8DE0"/>
+    <rect x="54" y="16" width="8" height="28" rx="1.5" fill="#3E6FD1"/>
+    <rect x="30" y="68" width="8" height="14" rx="1.5" fill="#2E4FA8"/>
+    <rect x="42" y="60" width="8" height="22" rx="1.5" fill="#20388C"/>
+    <rect x="54" y="50" width="8" height="32" rx="1.5" fill="#0F1F5C"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="115" y="70" font-size="52" font-weight="700" fill="#0F172A">Aisle<tspan fill="#2E63D9">Wise</tspan></text>
+
+  <!-- tagline -->
+  <text x="117" y="98" font-size="15" letter-spacing="2" fill="#334155">SMARTER INVENTORY. BETTER DECISIONS.</text>
+</svg>

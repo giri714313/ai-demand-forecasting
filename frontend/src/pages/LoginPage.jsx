@@ -30,10 +30,12 @@ export default function LoginPage({ onAuthed }) {
     <div className="w-full min-h-screen bg-[#F5F6FA] flex items-center justify-center p-6" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 justify-center mb-6">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0">
-            <Boxes size={18} color="white" />
+          <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0 p-1.5">
+            <img src="/icon-mark.svg" alt="AisleWise" className="w-full h-full" />
           </div>
-          <div className="text-[16px] font-medium text-gray-900">AI Demand Forecasting</div>
+          <div className="text-[18px] font-semibold text-gray-900">
+            Aisle<span className="text-blue-600">Wise</span>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">

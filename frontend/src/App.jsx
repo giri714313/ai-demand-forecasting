@@ -206,10 +206,17 @@ export default function App() {
         style={{ width: collapsed ? 72 : 240 }}
       >
         <div className={`py-5 flex items-center gap-2.5 border-b border-white/10 ${collapsed ? "justify-center px-0" : "px-5"}`}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shrink-0">
-            <Boxes size={17} color="white" />
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 p-1">
+            <img src="/icon-mark.svg" alt="AisleWise" className="w-full h-full" />
           </div>
-          {!collapsed && <div className="text-white text-[14px] font-medium leading-tight whitespace-nowrap">AI Demand<br />Forecasting</div>}
+          {!collapsed && (
+            <div className="leading-tight whitespace-nowrap">
+              <div className="text-white text-[15px] font-semibold">
+                Aisle<span className="text-blue-400">Wise</span>
+              </div>
+              <div className="text-white/40 text-[9px] tracking-wide">SMARTER INVENTORY</div>
+            </div>
+          )}
         </div>
 
         <button
