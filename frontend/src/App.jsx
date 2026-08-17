@@ -18,6 +18,7 @@ import ForecastAccuracyPage from "./pages/ForecastAccuracyPage";
 import AlertsPage from "./pages/AlertsPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import ReportsPage from "./pages/ReportsPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const navItems = [
   { label: "Overview", icon: LayoutGrid, active: true },
@@ -191,7 +192,8 @@ export default function App() {
             );
           })}
           <div className="h-px bg-white/10 my-2" />
-          <button title={collapsed ? "Settings" : undefined} className={`flex items-center gap-3 py-2.5 rounded-lg text-[13.5px] text-indigo-100/70 hover:bg-white/5 hover:text-white whitespace-nowrap overflow-hidden ${collapsed ? "justify-center px-0" : "px-3"}`}>
+          <button onClick={() => setActiveNav("Settings")} title={collapsed ? "Settings" : undefined}
+            className={`flex items-center gap-3 py-2.5 rounded-lg text-[13.5px] whitespace-nowrap overflow-hidden ${collapsed ? "justify-center px-0" : "px-3"} ${activeNav === "Settings" ? "bg-indigo-500 text-white" : "text-indigo-100/70 hover:bg-white/5 hover:text-white"}`}>
             <Settings size={16} className="shrink-0" />
             {!collapsed && "Settings"}
           </button>
@@ -372,6 +374,7 @@ export default function App() {
         {activeNav === "Alerts" && <AlertsPage />}
         {activeNav === "Data Management" && <DataManagementPage />}
         {activeNav === "Reports" && <ReportsPage />}
+        {activeNav === "Settings" && <SettingsPage />}
       </main>
     </div>
   );
