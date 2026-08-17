@@ -28,9 +28,19 @@ async function post(path, params = {}) {
   return res.json();
 }
 
+async function del(path) {
+  const res = await fetch(API_URL + path, { method: "DELETE" });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`DELETE ${path} failed: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
 export const api = {
   health: () => get("/health"),
   dashboardSummary: () => get("/dashboard/summary"),
+  dataStats: () => get("/dashboard/data-stats"),
   backtestResults: () => get("/metrics/backtest"),
   stores: () => get("/stores"),
   products: () => get("/products"),
@@ -41,6 +51,7 @@ export const api = {
   forecasts: (params) => get("/forecasts", params),
   train: (params) => post("/pipeline/train", params),
   generateForecasts: (params) => post("/pipeline/generate-forecasts", params),
+  resetData: () => del("/ingest/reset"),
 };
 
 export default api;

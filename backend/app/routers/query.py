@@ -112,7 +112,18 @@ def get_backtest_results(db: Session = Depends(get_db)):
     return db.query(models.BacktestResult).order_by(models.BacktestResult.wape.asc()).all()
 
 
-@router.get("/dashboard/summary", response_model=schemas.DashboardSummary)
+@router.get("/dashboard/data-stats")
+def data_stats(db: Session = Depends(get_db)):
+    return {
+        "stores": db.query(models.Store).count(),
+        "products": db.query(models.Product).count(),
+        "sales_rows": db.query(models.Sale).count(),
+        "inventory_rows": db.query(models.Inventory).count(),
+        "forecast_rows": db.query(models.Forecast).count(),
+        "risk_score_rows": db.query(models.RiskScore).count(),
+        "recommendation_rows": db.query(models.Recommendation).count(),
+        "backtest_rows": db.query(models.BacktestResult).count(),
+    }
 def dashboard_summary(db: Session = Depends(get_db)):
     n_stores = db.query(models.Store).count()
     n_skus = db.query(models.Product).count()

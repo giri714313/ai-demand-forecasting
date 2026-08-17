@@ -12,6 +12,12 @@ import api from "./api";
 import StockoutRiskPage from "./pages/StockoutRiskPage";
 import ReplenishmentPage from "./pages/ReplenishmentPage";
 import DemandForecastPage from "./pages/DemandForecastPage";
+import OverstockPage from "./pages/OverstockPage";
+import StoreTransfersPage from "./pages/StoreTransfersPage";
+import ForecastAccuracyPage from "./pages/ForecastAccuracyPage";
+import AlertsPage from "./pages/AlertsPage";
+import DataManagementPage from "./pages/DataManagementPage";
+import ReportsPage from "./pages/ReportsPage";
 
 const navItems = [
   { label: "Overview", icon: LayoutGrid, active: true },
@@ -360,12 +366,12 @@ export default function App() {
         {activeNav === "Stockout Risk" && <StockoutRiskPage />}
         {activeNav === "Replenishment" && <ReplenishmentPage />}
         {activeNav === "Demand Forecast" && <DemandForecastPage />}
-
-        {["Overstock", "Store Transfers", "Forecast Accuracy", "Reports", "Alerts", "Data Management"].includes(activeNav) && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="text-gray-400 text-sm">{activeNav} page isn't built yet — say the word and it's next.</div>
-          </div>
-        )}
+        {activeNav === "Overstock" && <OverstockPage />}
+        {activeNav === "Store Transfers" && <StoreTransfersPage />}
+        {activeNav === "Forecast Accuracy" && <ForecastAccuracyPage />}
+        {activeNav === "Alerts" && <AlertsPage />}
+        {activeNav === "Data Management" && <DataManagementPage />}
+        {activeNav === "Reports" && <ReportsPage />}
       </main>
     </div>
   );
