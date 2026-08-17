@@ -84,3 +84,34 @@ class DashboardSummary(BaseModel):
     total_transfer_recs: int
     best_model: Optional[str] = None
     best_model_wape: Optional[float] = None
+
+
+class UserSignup(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    # Anyone can sign up; only an existing admin (or the very first user,
+    # handled in the route) can actually become an admin. Requested role
+    # for non-first users other than "admin" is honored as-is (manager/viewer).
+    role: str = "viewer"
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+
+    class Config:
+        from_attributes = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut

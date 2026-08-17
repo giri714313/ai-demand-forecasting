@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2, Settings as SettingsIcon, RefreshCw, Play, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Settings as SettingsIcon, RefreshCw, Play, CheckCircle2, XCircle, AlertTriangle, Lock } from "lucide-react";
 import api from "../api";
 
 function NumberField({ label, hint, value, onChange, min = 0, max = 365 }) {
@@ -19,7 +19,7 @@ function NumberField({ label, hint, value, onChange, min = 0, max = 365 }) {
   );
 }
 
-export default function SettingsPage() {
+export default function SettingsPage({ isAdmin }) {
   const [leadTime, setLeadTime] = useState(5);
   const [safetyBuffer, setSafetyBuffer] = useState(14);
   const [overstockThreshold, setOverstockThreshold] = useState(45);
@@ -68,6 +68,18 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {!isAdmin ? (
+        <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-center py-16 text-center">
+          <Lock className="text-gray-300 mb-2" size={28} />
+          <div className="text-gray-500 text-sm">Admin access required</div>
+          <div className="text-gray-400 text-xs mt-1 max-w-sm">
+            Retraining and regenerating forecasts can reshape live recommendations for everyone,
+            so it's restricted to admins. Ask whoever set up this workspace to promote your account
+            if you need access.
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
         <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
         <div className="text-[13px] text-amber-800">
@@ -171,6 +183,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

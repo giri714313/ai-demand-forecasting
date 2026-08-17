@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Loader2, Database, Trash2, AlertOctagon } from "lucide-react";
+import { Loader2, Database, Trash2, AlertOctagon, Lock } from "lucide-react";
 import api from "../api";
 
-export default function DataManagementPage() {
+export default function DataManagementPage({ isAdmin }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -82,7 +82,11 @@ export default function DataManagementPage() {
               <div className="text-[12px] text-green-600 mb-3">Data cleared successfully.</div>
             )}
 
-            {!confirming ? (
+            {!isAdmin ? (
+              <div className="flex items-center gap-2 text-[13px] text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5">
+                <Lock size={14} /> Admin access required
+              </div>
+            ) : !confirming ? (
               <button
                 onClick={() => { setConfirming(true); setResetDone(false); }}
                 className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2 text-[13px] font-medium hover:bg-red-100"

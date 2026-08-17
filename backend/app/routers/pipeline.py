@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app import ml_engine
+from app import ml_engine, auth
 
-router = APIRouter(prefix="/pipeline", tags=["pipeline"])
+router = APIRouter(prefix="/pipeline", tags=["pipeline"], dependencies=[Depends(auth.require_admin)])
 
 
 @router.post("/train")

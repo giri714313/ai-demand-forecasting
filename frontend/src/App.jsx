@@ -8,7 +8,8 @@ import {
   LineChart as LineChartIcon, FileText, Bell, Database, Settings, ChevronDown,
   ArrowRight, Boxes, Layers, ChevronsLeft, ChevronsRight, Loader2, ServerCrash,
 } from "lucide-react";
-import api from "./api";
+import api, { getToken, setToken } from "./api";
+import LoginPage from "./pages/LoginPage";
 import StockoutRiskPage from "./pages/StockoutRiskPage";
 import ReplenishmentPage from "./pages/ReplenishmentPage";
 import DemandForecastPage from "./pages/DemandForecastPage";
@@ -106,12 +107,46 @@ export default function App() {
   const [activeNav, setActiveNav] = useState("Overview");
   const [collapsed, setCollapsed] = useState(false);
 
+  const [authStatus, setAuthStatus] = useState("checking"); // checking | unauthed | authed
+  const [user, setUser] = useState(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
   const [status, setStatus] = useState("checking"); // checking | ready | no-data | error
   const [summary, setSummary] = useState(null);
   const [backtest, setBacktest] = useState([]);
   const [highRisk, setHighRisk] = useState([]);
   const [mediumCount, setMediumCount] = useState(0);
   const [overstock, setOverstock] = useState([]);
+
+  async function checkAuth() {
+    const token = getToken();
+    if (!token) {
+      setAuthStatus("unauthed");
+      return;
+    }
+    try {
+      const u = await api.me();
+      setUser(u);
+      setAuthStatus("authed");
+    } catch {
+      setToken(null);
+      setAuthStatus("unauthed");
+    }
+  }
+
+  useEffect(() => { checkAuth(); }, []);
+
+  function handleAuthed(u) {
+    setUser(u);
+    setAuthStatus("authed");
+  }
+
+  function handleLogout() {
+    setToken(null);
+    setUser(null);
+    setAuthStatus("unauthed");
+    setAccountMenuOpen(false);
+  }
 
   async function loadAll() {
     setStatus("checking");
@@ -138,7 +173,19 @@ export default function App() {
     }
   }
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { if (authStatus === "authed") loadAll(); }, [authStatus]);
+
+  if (authStatus === "checking") {
+    return (
+      <div className="w-full min-h-screen bg-[#F5F6FA] flex items-center justify-center">
+        <Loader2 className="animate-spin text-indigo-400" size={24} />
+      </div>
+    );
+  }
+
+  if (authStatus === "unauthed") {
+    return <LoginPage onAuthed={handleAuthed} />;
+  }
 
   if (status !== "ready") {
     return <SetupScreen status={status} onRun={loadAll} />;
@@ -199,16 +246,35 @@ export default function App() {
           </button>
         </nav>
 
-        <div className={`py-4 border-t border-white/10 flex items-center gap-2.5 ${collapsed ? "px-2 justify-center" : "px-4"}`}>
-          <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-white text-xs font-medium shrink-0">RK</div>
-          {!collapsed && (
-            <>
-              <div className="min-w-0">
-                <div className="text-white text-[13px] font-medium truncate">Ravi Kumar</div>
-                <div className="text-indigo-200/50 text-[11px] truncate">Supply Chain Manager</div>
-              </div>
-              <ChevronDown size={14} className="text-white/40 ml-auto shrink-0" />
-            </>
+        <div className={`py-4 border-t border-white/10 relative ${collapsed ? "px-2" : "px-4"}`}>
+          <button
+            onClick={() => setAccountMenuOpen((o) => !o)}
+            className={`w-full flex items-center gap-2.5 ${collapsed ? "justify-center" : ""}`}
+          >
+            <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-white text-xs font-medium shrink-0">
+              {user?.full_name?.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase() || "?"}
+            </div>
+            {!collapsed && (
+              <>
+                <div className="min-w-0 text-left">
+                  <div className="text-white text-[13px] font-medium truncate">{user?.full_name}</div>
+                  <div className="text-indigo-200/50 text-[11px] truncate capitalize">{user?.role}</div>
+                </div>
+                <ChevronDown size={14} className="text-white/40 ml-auto shrink-0" />
+              </>
+            )}
+          </button>
+
+          {accountMenuOpen && (
+            <div className={`absolute bottom-full mb-2 bg-[#1E1B3A] border border-white/10 rounded-lg shadow-xl overflow-hidden ${collapsed ? "left-2 w-40" : "left-4 right-4"}`}>
+              <div className="px-3 py-2 text-[12px] text-white/50 border-b border-white/10 truncate">{user?.email}</div>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-3 py-2 text-[13px] text-white hover:bg-white/10"
+              >
+                Log out
+              </button>
+            </div>
           )}
         </div>
       </aside>
@@ -372,9 +438,9 @@ export default function App() {
         {activeNav === "Store Transfers" && <StoreTransfersPage />}
         {activeNav === "Forecast Accuracy" && <ForecastAccuracyPage />}
         {activeNav === "Alerts" && <AlertsPage />}
-        {activeNav === "Data Management" && <DataManagementPage />}
+        {activeNav === "Data Management" && <DataManagementPage isAdmin={user?.role === "admin"} />}
         {activeNav === "Reports" && <ReportsPage />}
-        {activeNav === "Settings" && <SettingsPage />}
+        {activeNav === "Settings" && <SettingsPage isAdmin={user?.role === "admin"} />}
       </main>
     </div>
   );

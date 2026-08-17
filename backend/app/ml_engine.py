@@ -6,6 +6,7 @@ handoff doc's rule: "Keep the model engine independent from the dashboard
 so the same engine can later serve Vijetha, Ratnadeep and other retailers."
 """
 import os
+import gc
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
@@ -34,6 +35,16 @@ def _load_sales_inventory(db: Session):
     inventory = pd.read_sql(text("SELECT * FROM inventory"), db.bind, parse_dates=['date'])
     products = pd.read_sql(text("SELECT * FROM products"), db.bind)
     stores = pd.read_sql(text("SELECT * FROM stores"), db.bind)
+
+    # Downcast to smaller dtypes immediately -- halves/quarters memory for the
+    # largest tables (sales/inventory), which matters a lot on memory-limited
+    # free-tier hosting (e.g. Render's 512MB free instances).
+    for col in ['units_sold', 'selling_price', 'discount_pct', 'sales_value']:
+        if col in sales.columns:
+            sales[col] = sales[col].astype('float32')
+    if 'promotion_flag' in sales.columns:
+        sales['promotion_flag'] = sales['promotion_flag'].astype('int8')
+
     return sales, inventory, products, stores
 
 
@@ -41,22 +52,29 @@ def _build_features(sales: pd.DataFrame, products: pd.DataFrame) -> pd.DataFrame
     df = sales.merge(products[['sku_id', 'category']], on='sku_id', how='left')
     df = df.sort_values(['store_id', 'sku_id', 'date']).reset_index(drop=True)
 
-    df['dow'] = df.date.dt.dayofweek
-    df['month'] = df.date.dt.month
-    df['day'] = df.date.dt.day
-    df['is_weekend'] = (df.dow >= 5).astype(int)
-    df['week_of_year'] = df.date.dt.isocalendar().week.astype(int)
+    df['dow'] = df.date.dt.dayofweek.astype('int8')
+    df['month'] = df.date.dt.month.astype('int8')
+    df['day'] = df.date.dt.day.astype('int8')
+    df['is_weekend'] = (df.dow >= 5).astype('int8')
+    df['week_of_year'] = df.date.dt.isocalendar().week.astype('int8')
 
-    grp = df.groupby(['store_id', 'sku_id'])['units_sold']
+    # Single groupby object reused for lags and as the basis for rolling
+    # stats -- the earlier version created a fresh groupby (and a fresh
+    # full-length intermediate Series) per lag/window via .transform(lambda),
+    # which was the main driver of a ~1.5GB peak on the full 730K-row table.
+    # groupby(...).rolling(...) computes directly without the lambda/transform
+    # overhead and is both faster and far lighter on memory.
+    g = df.groupby(['store_id', 'sku_id'], sort=False)['units_sold']
     for lag in [1, 7, 14, 28]:
-        df[f'lag_{lag}'] = grp.shift(lag)
+        df[f'lag_{lag}'] = g.shift(lag).astype('float32')
 
-    shifted = grp.shift(1)
+    shifted = g.shift(1).astype('float32')
+    sg = shifted.groupby([df['store_id'], df['sku_id']], sort=False)
     for window in [7, 14, 28]:
-        df[f'roll_mean_{window}'] = shifted.groupby([df['store_id'], df['sku_id']]).transform(
-            lambda s: s.rolling(window).mean())
-        df[f'roll_std_{window}'] = shifted.groupby([df['store_id'], df['sku_id']]).transform(
-            lambda s: s.rolling(window).std())
+        roll = sg.rolling(window, min_periods=window)
+        df[f'roll_mean_{window}'] = roll.mean().reset_index(drop=True).astype('float32')
+        df[f'roll_std_{window}'] = roll.std().reset_index(drop=True).astype('float32')
+    del shifted, sg
 
     df['category'] = df['category'].astype('category')
     df['store_id_cat'] = df['store_id'].astype('category')
@@ -83,11 +101,14 @@ def train_and_backtest(db: Session, test_days: int = 30) -> dict:
         raise ValueError("No sales data loaded. Ingest data before training.")
 
     df = _build_features(sales, products)
+    del sales
     model_df = df.dropna(subset=['lag_28', 'roll_mean_28']).copy()
+    del df
 
-    cutoff_date = df.date.max() - pd.Timedelta(days=test_days)
+    cutoff_date = model_df.date.max() - pd.Timedelta(days=test_days)
     train = model_df[model_df.date <= cutoff_date]
     test = model_df[model_df.date > cutoff_date].copy()
+    del model_df
 
     X_train, y_train = train[FEATURE_COLS], train['units_sold']
     X_test, y_test = test[FEATURE_COLS], test['units_sold']
@@ -117,13 +138,18 @@ def train_and_backtest(db: Session, test_days: int = 30) -> dict:
         b = _bias(test['units_sold'].values, test[col].values)
         results.append({'model': name, 'mae': mae, 'rmse': rmse, 'wape': w, 'bias': b})
 
+    test_start, test_end = str(test.date.min().date()), str(test.date.max().date())
+    rows_trained, rows_tested = len(train), len(test)
+
     db.query(models.BacktestResult).delete()
     for r in results:
         db.add(models.BacktestResult(**r))
     db.commit()
+    del train, test, X_train, X_test, train_set, booster
+    gc.collect()
 
-    return {'test_period': {'start': str(test.date.min().date()), 'end': str(test.date.max().date())},
-            'rows_trained': len(train), 'rows_tested': len(test), 'results': results}
+    return {'test_period': {'start': test_start, 'end': test_end},
+            'rows_trained': rows_trained, 'rows_tested': rows_tested, 'results': results}
 
 
 def generate_forecasts_and_recommendations(db: Session, horizon: int = 90,

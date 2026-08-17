@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app import models, schemas
+from app import models, schemas, auth
 
-router = APIRouter(tags=["query"])
+router = APIRouter(tags=["query"], dependencies=[Depends(auth.get_current_user)])
 
 
 @router.get("/stores", response_model=List[schemas.StoreOut])

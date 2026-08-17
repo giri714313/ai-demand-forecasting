@@ -2,7 +2,7 @@
 ORM models -- one table per entity in the handoff doc's data model:
 stores, products, sales, inventory, forecasts, risk_scores, recommendations.
 """
-from sqlalchemy import Column, String, Float, Integer, Date, Boolean, ForeignKey, Index
+from sqlalchemy import Column, String, Float, Integer, Date, Boolean, ForeignKey, Index, DateTime, func
 from app.database import Base
 
 
@@ -104,3 +104,13 @@ class BacktestResult(Base):
     rmse = Column(Float)
     wape = Column(Float)
     bias = Column(Float)
+
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    full_name = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="viewer")  # 'admin' | 'manager' | 'viewer'
+    created_at = Column(DateTime, server_default=func.now())

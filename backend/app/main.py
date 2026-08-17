@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from app import models  # noqa: F401 -- ensures models are registered before create_all
-from app.routers import ingest, pipeline, query
+from app.routers import ingest, pipeline, query, auth
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(ingest.router)
 app.include_router(pipeline.router)
 app.include_router(query.router)

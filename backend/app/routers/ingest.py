@@ -6,8 +6,9 @@ import io
 import time
 
 from app.database import get_db
+from app import auth
 
-router = APIRouter(prefix="/ingest", tags=["ingest"])
+router = APIRouter(prefix="/ingest", tags=["ingest"], dependencies=[Depends(auth.require_admin)])
 
 TABLE_MAP = {
     "stores": ["store_id", "store_name", "city", "state", "store_type", "active"],
@@ -21,6 +22,16 @@ TABLE_MAP = {
 
 
 async def _ingest_csv(table: str, file: UploadFile, db: Session):
+    """
+    Streams the CSV in small chunks to keep peak memory low, using a
+    dialect-aware bulk-load strategy:
+    - Postgres: COPY via psycopg2's copy_expert -- Postgres's native bulk
+      load mechanism, streaming rows directly over the wire protocol. This
+      is dramatically faster than row-by-row or even batched multi-row
+      INSERTs for large tables (700K+ rows) over a network connection --
+      typically an order of magnitude faster than execute_values.
+    - SQLite: sqlite3's executemany(), already fast in-process locally.
+    """
     t0 = time.time()
     expected = TABLE_MAP[table]
     is_postgres = db.bind.dialect.name == "postgresql"
